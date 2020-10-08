@@ -1,0 +1,954 @@
+<!DOCTYPE html>
+<html lang="de">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>How to play</title>
+	<script src="https://cdn.jsdelivr.net/npm/phaser@3.16.1/dist/phaser-arcade-physics.min.js"></script>
+    <link 	
+	href="http://pixel-fight.de/client/css/normalize.css"
+	rel="stylesheet"
+	media="all"
+	>
+	<link 	
+	href="/client/css/style.css"
+	rel="stylesheet"
+	media="all"
+	>
+	<link href='font/ARCADECLASSIC.TTF' rel='stylesheet' type='text/css'>
+	<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.1/css/all.css" integrity="sha384-fnmOCqbTlWIlj8LyTjo7mOUStjsKC4pOpQbqyi7RrhN7udi9RwhKkMHpvLbHG9Sr" crossorigin="anonymous">
+  </head>
+  <body>
+  	<div id="header">
+  		<a href="index.html" class="button">HOME</a>
+  		<a href="http://pixel-fight.de:8080" class="button">PLAY</a>
+  		<a href="charakter.html" class="button">CHARAKTER</a>
+  		<a href="#" class="button activ">HOW TO PLAY</a>
+
+  		<img src="images/logo.png" class="logo">
+  	</div>
+	<div id="main">
+  		<h1>Testbox:</h1>
+  	</div>
+  	<div id="charakter">
+  			<h1 class="centering">Wähle deinen Charakter.</h1>
+	  		<div class="charakter">
+	        	<img src="/client/images/wiking-card.png" class="charkterCard">
+	          	<button id="charakterButton" class="charakterButton" onclick="Game('wiking')"><i class="fas fa-play"></i></button>
+	       </div>
+
+	       <div class="charakter">
+	          <img src="/client/images/elfe-card.png" class="charkterCard">
+	          <button id="charakterButton" class="charakterButton" onclick="Game('elfe')" ><i class="fas fa-play"></i></button>
+	       </div>
+
+	       <div class="charakter">
+	          <img src="/client/images/wizard-card.png" class="charkterCard">
+	          <button id="charakterButton" class="charakterButton" onclick="Game('wizard')" ><i class="fas fa-play"></i></button>
+	       </div>
+
+	       <div class="charakter">
+			  <img src="/client/images/skelett-card.png" class="charkterCard">
+	          <button id="charakterButton" class="charakterButton" onclick="Game('skeleton')" ><i class="fas fa-play"></i></button>
+	       </div>
+  		</div>
+  	</div>
+  </body>
+</html>
+
+<script>
+	function Game(playerCharakter){
+		var element = document.getElementById("charakter");
+		element.classList.add("hidden");
+		
+		var config = {
+			type: Phaser.Auto,
+			width: 800,
+			height: 550,
+			parent: 'main',
+			physics: {
+				default: 'arcade',
+				arcade:{
+					gravity:{y:1500}
+				}
+			},
+			scene:{
+				preload: preload,
+				create: create,
+				update: update
+			}
+		}
+		
+		game = new Phaser.Game(config);
+		
+		function preload() {
+			this.load.image('bg', '/assets/testbox.png');
+			this.load.image('ground', '/assets/platform.png');
+			this.load.spritesheet('barrel', '/assets/sprite/barrel.png', {frameWidth:50, frameHeight:50});
+
+			this.load.spritesheet('wiking', '/assets/sprite/wiking-run.png', {frameWidth:50, frameHeight:50});
+			this.load.spritesheet('wiking-attack', '/assets/sprite/wiking-attack.png', {frameWidth:75, frameHeight:50});
+			this.load.spritesheet('wiking-special-run', 'assets/specials/rage_run.png', {frameWidth:50, frameHeight:50});
+			this.load.spritesheet('wiking-special-attack', 'assets/specials/rage_attack.png', {frameWidth:75, frameHeight:50});
+
+			this.load.spritesheet('elfe', '/assets/sprite/elfe-run.png', {frameWidth:50, frameHeight:50});
+			this.load.spritesheet('elfe-attack', '/assets/sprite/elfe-attack.png', {frameWidth:50, frameHeight:50});
+			this.load.spritesheet('elfe-projectile', '/assets/projectiles/arrow.png', {frameWidth:24, frameHeight:11});
+			this.load.spritesheet('elfe-special', '/assets/specials/fire_arrow.png', {frameWidth:24, frameHeight:11});
+
+			this.load.spritesheet('wizard', '/assets/sprite/wizard-run.png', {frameWidth:50, frameHeight:50});
+			this.load.spritesheet('wizard-attack', '/assets/sprite/wizard-attack.png', {frameWidth:50, frameHeight:50});
+			this.load.spritesheet('wizard-projectile', '/assets/projectiles/arcaneBolt.png', {frameWidth:34.5, frameHeight:25.5});
+			this.load.spritesheet('wizard-special', '/assets/specials/arcane_wave.png', {frameWidth:432, frameHeight:33});
+
+			this.load.spritesheet('skeleton', '/assets/sprite/skeleton-run.png', {frameWidth:50, frameHeight:50});
+			this.load.spritesheet('skeleton-attack', '/assets/sprite/skeleton-attack.png', {frameWidth:50, frameHeight:50});
+			this.load.spritesheet('skeleton-projectile', '/assets/projectiles/bone.png', {frameWidth:17, frameHeight:16.5});
+			this.load.spritesheet('spider', '/assets/specials/spider_run.png', {frameWidth:54, frameHeight:33});
+			
+			this.load.spritesheet('aura', '/assets/sprite/aura.png', {frameWidth:50, frameHeight: 50});
+			
+			//Spider: frameWidth:54px, frameHeight:33px;
+			//arcane_wave: frameWidth:432px, frameHeight:33px;
+			//fire_arrow: frameWidth:24px, frameHeight:11px;
+		}
+		
+		var platformGroundPos = {X:400, Y:530};
+		var backgroundPos = {X:400, Y:250};
+		var isActive = false;
+		
+		var left;
+		var mouse = false;
+		var auraAct = false;
+		var bloodlust = false;
+		var then = 0;
+		var special = false;
+		var beam = false;
+		var spiderAct = false;
+		var spiderHP = 100;
+		var wave;
+		
+		function create() {
+			var self = this;
+			
+			addTestBox(self);
+			addBarrel(self);
+			addPlayer(self);
+			addAura(self);
+			
+			if(playerCharakter == 'skeleton'){
+				addSpider(self);
+			}
+			
+			//Cursor + Mouse input
+
+			cursors = this.input.keyboard.createCursorKeys();
+			this.input.on('pointerdown',function (pointer){
+				mouse = true;
+			},this);
+			this.input.on('pointerup',function (pointer){
+				mouse = false;
+
+			},this);
+			
+			gameAnims(this);
+			
+			/*this.physics.world.on('worldbounds', function(body){
+				console.log(body);
+				if(body == projectile){
+					body.disableBody(true, true);
+					console.log('disabled');
+				}
+			}, this);*/
+		}
+		
+		function addTestBox(self){
+			self.add.image(backgroundPos.X, backgroundPos.Y, 'bg');
+			platforms = self.physics.add.staticGroup();
+			platforms.create(platformGroundPos.X, platformGroundPos.Y, 'ground');
+			
+			var pf_top = platforms.create(600, 180, 'ground').setScale(0.3, 0.5).refreshBody();
+			var pf_right = platforms.create(600, 363, 'ground').setScale(0.3, 0.5).refreshBody();
+			var pf_left = platforms.create(200, 272, 'ground').setScale(0.3, 0.5).refreshBody();
+			//pf_left.setDisplaySize(200, 50).refreshBody;
+		}
+		
+		function addBarrel(self){
+			//var self = this;
+			barrel = self.physics.add.sprite(400, 50, 'barrel');
+			barrel.setCollideWorldBounds(true);
+			self.physics.add.collider(barrel, platforms);
+		}
+		
+		function addPlayer(self){
+			player = self.physics.add.sprite(100, 350, playerCharakter);
+			self.physics.add.collider(player, platforms);
+			left = false;
+			
+			//player = self.player;
+		}
+		
+		function breakBarrel(player, barrel){
+			barrel.anims.play('barrel-smash', true);
+			barrel.on('animationcomplete', animComplete, this);
+			setAura(this);
+			//this.socket.emit('smashBarrelAni');
+		}
+		
+		function addAura(self){
+			aura = self.add.sprite(player.x, player.y, 'aura-stand-left');
+			aura.setVisible(false);
+				//isActive = true;
+				//auraAct = true;
+		}
+		
+		function setAura(self){
+			aura.setVisible(true);
+			isActive = true;
+		}
+		
+		function disAura(self){
+			aura.setVisible(false);
+			isActive = false;
+		}
+			
+
+		function animComplete(){
+			//barrel.disableBody(true, true);
+			//addBarrel(this);
+			if(barrel.body.touching.down){
+				barrel.x = 400;
+				barrel.y = 50;
+				barrel.anims.play('barrel-stand', true);
+			}
+		}
+		
+		function gameAnims(self){
+//////////////////////////////////////////////////////////////////////////// WIKING ///////////////////////////////////////////////////////////////////
+
+			//RUN
+			self.anims.create({
+				key:'wiking-right',
+				frames:self.anims.generateFrameNumbers('wiking', {start:1, end:4 }),
+				frameRate:10,
+				repeat:-1
+			});
+			
+			self.anims.create({
+				key:'wiking-left',
+				frames:self.anims.generateFrameNumbers('wiking', {start:5, end:8 }),
+				frameRate:10,
+				repeat:-1
+			});
+
+			self.anims.create({
+				key:'wiking-special-right',
+				frames:self.anims.generateFrameNumbers('wiking-special-run', {start:1, end:4 }),
+				frameRate:10,
+				repeat:-1
+			});
+			
+			self.anims.create({
+				key:'wiking-special-left',
+				frames:self.anims.generateFrameNumbers('wiking-special-run', {start:5, end:8 }),
+				frameRate:10,
+				repeat:-1
+			});
+			
+			
+			
+			//STAND
+			self.anims.create({
+				key:'wiking-standRight',
+				frames:[{key:'wiking', frame:0}],
+				frameRate:20
+			});
+
+			self.anims.create({
+				key:'wiking-standleft',
+				frames:[{key:'wiking', frame:9}],
+				frameRate:20
+			});
+			
+			self.anims.create({
+				key:'wiking-special-standRight',
+				frames:[{key:'wiking-special-run', frame:0}],
+				frameRate:20
+			});
+
+			self.anims.create({
+				key:'wiking-special-standleft',
+				frames:[{key:'wiking-special-run', frame:9}],
+				frameRate:20
+			});
+
+			//attack
+
+			self.anims.create({
+				key:'wiking-right-attack',
+				frames:self.anims.generateFrameNumbers('wiking-attack', {start:0, end:2 }),
+				frameRate:12,
+				repeat:0
+			});
+
+			self.anims.create({
+				key:'wiking-left-attack',
+				frames:self.anims.generateFrameNumbers('wiking-attack', {start:3, end:5 }),
+				frameRate:12,
+				repeat:0
+			});
+			
+			self.anims.create({
+				key:'wiking-special-right-attack',
+				frames:self.anims.generateFrameNumbers('wiking-special-attack', {start:0, end:2 }),
+				frameRate:12,
+				repeat:0
+			});
+
+			self.anims.create({
+				key:'wiking-special-left-attack',
+				frames:self.anims.generateFrameNumbers('wiking-special-attack', {start:3, end:5 }),
+				frameRate:12,
+				repeat:0
+			});
+
+			////////////////////////////////////////////////////////////// ELFE ////////////////////////////////////////////////////////////////////////////////////////
+
+			//RUN
+			self.anims.create({
+				key:'elfe-right',
+				frames:self.anims.generateFrameNumbers('elfe', {start:1, end:4 }),
+				frameRate:10,
+				repeat:-1
+			});
+			
+			self.anims.create({
+				key:'elfe-left',
+				frames:self.anims.generateFrameNumbers('elfe', {start:5, end:8 }),
+				frameRate:10,
+				repeat:-1
+			});
+			//STAND
+			self.anims.create({
+				key:'elfe-standRight',
+				frames:[{key:'elfe', frame:0}],
+				frameRate:20
+			});
+
+			self.anims.create({
+				key:'elfe-standleft',
+				frames:[{key:'elfe', frame:9}],
+				frameRate:20
+			});
+
+			//attack
+
+			self.anims.create({
+				key:'elfe-right-attack',
+				frames:self.anims.generateFrameNumbers('elfe-attack', {start:0, end:2 }),
+				frameRate:12,
+				repeat:0
+			});
+			
+			self.anims.create({
+				key:'elfe-projectile-right',
+				frames:[{key:'elfe-projectile', frame:0}],
+				frameRate:20,
+			});
+			
+			self.anims.create({
+				key:'elfe-special-right',
+				frames:[{key:'elfe-special', frame:0}],
+				frameRate:20,
+			});
+
+			self.anims.create({
+				key:'elfe-left-attack',
+				frames:self.anims.generateFrameNumbers('elfe-attack', {start:3, end:5 }),
+				frameRate:12,
+				repeat:0
+			});
+			
+			self.anims.create({
+				key:'elfe-projectile-left',
+				frames:[{key:'elfe-projectile', frame:1}],
+				frameRate:20,
+			});
+			
+			self.anims.create({
+				key:'elfe-special-left',
+				frames:[{key:'elfe-special', frame:1}],
+				frameRate:20,
+			});
+			
+			
+
+			////////////////////////////////////////////////////////////////////////// Magier ///////////////////////////////////////////////////////////
+
+			//RUN
+			self.anims.create({
+				key:'wizard-right',
+				frames:self.anims.generateFrameNumbers('wizard', {start:1, end:4 }),
+				frameRate:10,
+				repeat:-1
+			});
+			
+			self.anims.create({
+				key:'wizard-left',
+				frames:self.anims.generateFrameNumbers('wizard', {start:5, end:8 }),
+				frameRate:10,
+				repeat:-1
+			});
+			//STAND
+			self.anims.create({
+				key:'wizard-standRight',
+				frames:[{key:'wizard', frame:0}],
+				frameRate:20
+			});
+
+			self.anims.create({
+				key:'wizard-standleft',
+				frames:[{key:'wizard', frame:9}],
+				frameRate:20
+			});
+
+			//attack
+
+			self.anims.create({
+				key:'wizard-right-attack',
+				frames:self.anims.generateFrameNumbers('wizard-attack', {start:0, end:2 }),
+				frameRate:20,
+				repeat:0
+			});
+			
+			self.anims.create({
+				key:'wizard-projectile-right',
+				frames:self.anims.generateFrameNumbers('wizard-projectile', {start:0, end:2}),
+				frameRate:20,
+				repeat:-1
+			});
+			
+			self.anims.create({
+				key:'wizard-special-right',
+				frames:[{key:'wizard-special', frame:0}],
+				frameRate:20,
+				repeat:0
+			});
+
+			self.anims.create({
+				key:'wizard-left-attack',
+				frames:self.anims.generateFrameNumbers('wizard-attack', {start:3, end:5 }),
+				frameRate:20,
+				repeat:0
+			});
+			
+			self.anims.create({
+				key:'wizard-projectile-left',
+				frames:self.anims.generateFrameNumbers('wizard-projectile', {start:3, end:5}),
+				frameRate:20,
+				repeat:-1
+			});
+			
+			self.anims.create({
+				key:'wizard-special-left',
+				frames:[{key:'wizard-special', frame:1}],
+				frameRate:20,
+				repeat:0
+			});
+
+
+			////////////////////////////////////////////////////////////// Skelett ///////////////////////////////////////////////////////////////
+
+			//RUN
+			self.anims.create({
+				key:'skeleton-right',
+				frames:self.anims.generateFrameNumbers('skeleton', {start:1, end:4 }),
+				frameRate:10,
+				repeat:-1
+			});
+			
+			self.anims.create({
+				key:'skeleton-left',
+				frames:self.anims.generateFrameNumbers('skeleton', {start:5, end:8 }),
+				frameRate:10,
+				repeat:-1
+			});
+			//STAND
+			self.anims.create({
+				key:'skeleton-standRight',
+				frames:[{key:'skeleton', frame:0}],
+				frameRate:20
+			});
+
+			self.anims.create({
+				key:'skeleton-standleft',
+				frames:[{key:'skeleton', frame:9}],
+				frameRate:20
+			});
+
+			//attack
+
+			self.anims.create({
+				key:'skeleton-right-attack',
+				frames:self.anims.generateFrameNumbers('skeleton-attack', {start:0, end:2 }),
+				frameRate:20,
+				repeat:0
+			});
+			
+			self.anims.create({
+				key:'skeleton-projectile-right',
+				frames:self.anims.generateFrameNumbers('skeleton-projectile', {start:0, end:1}),
+				frameRate:20,
+				repeat:-1
+			});
+
+			self.anims.create({
+				key:'skeleton-left-attack',
+				frames:self.anims.generateFrameNumbers('skeleton-attack', {start:3, end:5 }),
+				frameRate:20,
+				repeat:0
+			});
+			
+			self.anims.create({
+				key:'skeleton-projectile-left',
+				frames:self.anims.generateFrameNumbers('skeleton-projectile', {start:0, end:1}),
+				frameRate:20,
+				repeat:-1
+			});
+			
+			
+			//spider
+			
+			self.anims.create({
+				key:'spider-run-right',
+				frame:self.anims.generateFrameNumbers('spider', {start:0, end:7}),
+				frameRate:20,
+				repeat:-1
+			});
+			
+			self.anims.create({
+				key:'spider-run-left',
+				frame:self.anims.generateFrameNumbers('spider', {start:8, end:15}),
+				frameRate:20,
+				repeat:-1
+			});
+			
+			
+			///////////////////barrel Animation//////////////////////
+			self.anims.create({
+				key:'barrel-stand',
+				frames:[{key:'barrel', frame:0}],
+				frameRate:20
+			});
+
+			self.anims.create({
+				key:'barrel-smash',
+				frames:self.anims.generateFrameNumbers('barrel', {start:0, end:4 }),
+				frameRate:12,
+				repeat:0
+			});
+			
+			
+			
+			///////////////////////////////Aura////////////////////////
+			self.anims.create({
+				key:'aura-stand-left',
+				frames:self.anims.generateFrameNumbers('aura', {start:0, end:2 }),
+				frameRate:20,
+				repeat:0
+			});
+			
+			self.anims.create({
+				key:'aura-stand-right',
+				frames:self.anims.generateFrameNumbers('aura', {start:3, end:5 }),
+				frameRate:20,
+				repeat:0
+			});
+			
+			
+		}
+		
+		function onWorldBounds(body){
+			console.log('in');
+			if(body = projectile){
+				body.disableBody(true, true);
+				console.log('disabled');
+			}
+		}
+					
+		function projComplete(animation, frame){
+			if(mouse){
+				if(left){
+					addProjectiles(this, 'left', false);
+				}
+				else{
+					addProjectiles(this, 'right', false);
+				}
+			}
+		}
+		
+		function addProjectiles(self, turn, specialProj){
+			/*projectiles = self.physics.add.group({
+				key: 'projectile'
+			});*/
+			
+			//self.physics.add.overlap(projectile, worldBound, destroyProj, null, this);
+			
+			if(!specialProj){
+				projectile = self.physics.add.sprite(player.x, player.y, playerCharakter+'-projectile');
+				projectile.anims.play(playerCharakter+'-projectile-'+turn, true);
+				
+				if(playerCharakter == 'elfe'){
+					if(turn == 'right'){
+						projectile.setVelocityX(350);
+					}
+					else{
+						projectile.setVelocityX(-350);
+					}
+					projectile.body.setAllowGravity(false);
+				}
+				else if(playerCharakter == 'wizard'){
+					if(turn == 'right'){
+						projectile.setVelocityX(400);
+					}
+					else{
+						projectile.setVelocityX(-400);
+					}
+					projectile.body.setAllowGravity(false);
+				}
+				
+				else{
+					if(turn == 'right'){
+						projectile.setVelocityX(300);
+					}
+					else{
+						projectile.setVelocityX(-300);
+					}
+					projectile.body.setAllowGravity(false);
+				}
+				projectile.setCollideWorldBounds(true);
+				projectile.body.onWorldBounds = true;
+				projectile.body.world.on('worldbounds', destObj, projectile);
+				
+				self.physics.add.overlap(projectile, platforms, destroyProj, null, self);
+				self.physics.add.overlap(projectile, barrel, breakBarrel, null, self);
+				
+			}
+			else{
+				
+				if(playerCharakter == 'elfe'){
+				
+					projectile = self.physics.add.sprite(player.x, player.y, playerCharakter+'-special');
+					projectile.anims.play(playerCharakter+'-special-'+turn, true);
+					projectile.body.setAllowGravity(false);
+					
+					console.log('special-elfe');
+					if(turn == 'right'){
+						projectile.setVelocityX(800);
+					}
+					else{
+						projectile.setVelocityX(-800);
+					}
+					projectile.setCollideWorldBounds(true);
+					projectile.body.onWorldBounds = true;
+					projectile.body.world.on('worldbounds', destObj, projectile);
+					
+					self.physics.add.overlap(projectile, platforms, destroyProj, null, self);
+					self.physics.add.overlap(projectile, barrel, breakBarrel, null, self);
+				}
+				else{
+					if(turn == 'right'){
+						wave = self.physics.add.sprite(player.x + 216,player.y, playerCharakter+'-special');
+					}
+					else{
+						wave = self.physics.add.sprite(player.x - 216,player.y, playerCharakter+'-special');
+					}
+					wave.anims.play(playerCharakter+'-special-'+turn, true);
+					wave.body.setAllowGravity(false);
+					console.log('special-wizard');
+					beam = true;
+					then = Date.now() + 2000;
+					//player.setVelocityX
+				}
+				special = false;
+			}
+		}
+		
+		function destObj(body) {
+					if(body.gameObject === this){
+						body.gameObject.setActive(false);
+						body.gameObject.setVisible(false);
+						//body.gameObject.disableBody(true, true);
+					}
+		}
+		
+		function destroyProj(projectile, platform){
+			projectile.disableBody(true, true);
+			console.log('disabled');
+		}
+		
+		function specialAttack(self){
+			switch(playerCharakter){
+				case 'wiking':
+					bloodlust = true;
+					then = Date.now() + 10000;
+					//timer();
+					console.log('on');
+					
+					break;
+				case 'elfe':
+					if(left){
+						player.anims.play(playerCharakter+'-left-attack', true);
+						player.on('animationcomplete', createSpecialProj, self);
+						//addProjectiles(self, 'left', true);
+					}
+					else{
+						player.anims.play(playerCharakter+'-right-attack', true);
+						player.on('animationcomplete', createSpecialProj, self);
+						//addProjectiles(self, 'right', true);
+					}
+					
+					break;
+				case 'wizard':
+					if(left){
+						player.anims.play(playerCharakter+'-left-attack', true);
+						player.on('animationcomplete', createSpecialProj, self);
+						//addProjectiles(self, 'left', true);
+					}
+					else{
+						player.anims.play(playerCharakter+'-right-attack', true);
+						player.on('animationcomplete', createSpecialProj, self);
+						//addProjectiles(self, 'right', true);
+					}
+					
+					break;
+				case 'skeleton':
+					summonSpider(self);
+					
+					break;
+				default:
+					break;
+			}
+		}
+		
+		function createSpecialProj(){
+			if(special){
+				if(!isActive){
+					if(left){
+						addProjectiles(this, 'left', true);
+					}
+					else{
+						addProjectiles(this, 'right', true);
+					}
+				}
+			}
+		}
+		
+		function addSpider(self){
+			spider = self.physics.add.sprite(player.x, player.y, 'spider');
+			spider.setVisible(false);
+			self.physics.add.collider(spider, platforms);
+			//spider.body.setAllowGravity(false);
+			//self.physics.add.collider(spider, platforms);
+			console.log('spider_created');
+		}
+		
+		function summonSpider(self){
+			spider.x = player.x;
+			spider.y = player.y;
+			spider.setVisible(true);
+			spiderHP = 100;
+			spiderAct = true;
+			console.log('spider_summoned');
+		}
+		
+		function spiderControll(self){
+			console.log('spider_KI');
+			/*if(other.player.x > spider.x){
+				spider.setVelocityX(66);
+				//play.anims
+			}
+			else{
+				spider.setVelocityX(-66);
+				//play.anims
+			}
+			
+			if(spider.body.touching.down && spider.y < other.player.y){
+				spider.setVelocityY(666);
+			}*/
+			
+			if(spiderHP <= 0){
+				spiderAct = false;
+				spider.setVisible(false);
+			}
+		}
+		
+		
+		function update() {
+			if(then <= Date.now() && bloodlust){
+				bloodlust = false;
+				console.log('off');
+				then = 0;
+			}
+			
+			if(beam){
+				console.log('beam_on');
+				player.setVelocityX(0);
+				if(then <= Date.now()){
+					beam = false;
+					console.log('off');
+					wave.disableBody(true, true);
+				}
+			}
+			
+			if(isActive){
+				if(left){
+					aura.anims.play('aura-stand-right', true);
+				}
+				else{
+					aura.anims.play('aura-stand-left', true);
+				}
+			}
+			
+			if(mouse && !beam){
+						
+						player.setVelocityX(0);
+						
+					if(left){
+						if(playerCharakter == 'wiking'){
+							if(bloodlust){
+								player.anims.play(playerCharakter+'-special-left-attack', true);
+							}
+							else{
+								player.anims.play(playerCharakter+'-left-attack', true);
+							}
+						}
+						else{
+							player.anims.play(playerCharakter+'-left-attack', true);
+						}
+						if(playerCharakter == 'wiking'){
+							this.physics.overlap(player, barrel, breakBarrel, null, this);
+						}
+						else{
+							player.on('animationcomplete', projComplete, this);
+						}
+						
+						
+					}else{
+						if(playerCharakter == 'wiking'){
+							if(bloodlust){
+								player.anims.play(playerCharakter+'-special-right-attack', true);
+								console.log('blood');
+							}
+							else{
+								player.anims.play(playerCharakter+'-right-attack', true);
+							}
+						}
+						else{
+							player.anims.play(playerCharakter+'-right-attack', true);
+						}
+						
+						if(playerCharakter == 'wiking'){
+							this.physics.overlap(player, barrel, breakBarrel, null, this);
+						}
+						else{
+							player.on('animationcomplete', projComplete, this);
+						}
+						
+					}
+					
+					aura.x = player.x;
+					aura.y = player.y;
+			}else{
+				
+				aura.x = player.x;
+				aura.y = player.y;
+				
+				if(cursors.left.isDown && !beam){
+					player.setVelocityX(-160);
+					
+					if(playerCharakter == 'wiking'){
+							if(bloodlust){
+								player.anims.play(playerCharakter+'-special-left', true);
+							}
+							else{
+								player.anims.play(playerCharakter+'-left', true);
+							}
+						}
+					else{
+						player.anims.play(playerCharakter+'-left', true);
+					}
+					//this.socket.emit('playerTurn', { turn: playerCharakter+'-left'});
+					left = true;
+					//right = false;
+					
+				}else if(cursors.right.isDown && !beam){
+					player.setVelocityX(160);
+					if(playerCharakter == 'wiking'){
+							if(bloodlust){
+								player.anims.play(playerCharakter+'-special-right', true);
+							}
+							else{
+								player.anims.play(playerCharakter+'-right', true);
+							}
+						}
+					else{
+						player.anims.play(playerCharakter+'-right', true);
+					}
+					//this.socket.emit('playerTurn', { turn: playerCharakter+'-right'});
+					left = false;
+					//right = true;
+					
+				}else{
+					player.setVelocityX(0);
+					if(left){
+						if(playerCharakter == 'wiking'){
+							if(bloodlust){
+								player.anims.play(playerCharakter+'-special-standleft', true);
+							}
+							else{
+								player.anims.play(playerCharakter+'-standleft', true);
+							}
+						}
+						else{
+							player.anims.play(playerCharakter+'-standleft');
+						}
+						//this.socket.emit('playerTurn', { turn: playerCharakter+'-standleft'});
+					}else{
+						if(playerCharakter == 'wiking'){
+							if(bloodlust){
+								player.anims.play(playerCharakter+'-special-standRight', true);
+							}
+							else{
+								player.anims.play(playerCharakter+'-standRight', true);
+							}
+						}
+						else{
+							player.anims.play(playerCharakter+'-standRight');
+						}
+						//this.socket.emit('playerTurn', { turn: playerCharakter+'-standRight'});
+					}
+					
+					
+				}
+				
+				if(cursors.up.isDown && player.body.touching.down && !beam){
+					player.setVelocityY(-800);
+				}
+				
+				if(cursors.down.isDown && isActive){
+					specialAttack(this);
+					disAura(this);
+					special = true;
+				}
+			}
+			
+			if(spiderAct){
+				spiderControll(this);
+			}
+		}
+		
+	}
+</script>
+		
+		
